@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "21310800133",
+    "project_id": "ssit-56fe5",
+    "storage_bucket": "ssit-56fe5.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:21310800133:android:30592d8aeef7634c1cb76c",
+        "android_client_info": {
+          "package_name": "com.example.reminder_app_v2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFGO-WlL7bZ098txlGilfC3OnquNBTVKw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:21310800133:android:546fdcd72c9bfaa91cb76c",
+        "android_client_info": {
+          "package_name": "com.ssit.ssit_college_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFGO-WlL7bZ098txlGilfC3OnquNBTVKw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

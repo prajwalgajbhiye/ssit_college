@@ -1,0 +1,170 @@
+import 'dart:math';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:mailer/mailer.dart';
+import 'package:mailer/smtp_server/gmail.dart';
+
+import '../../../components/test_component.dart';
+import 'otp_screen.dart';
+
+class AuthService {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+
+
+
+  // Variable to store the generated OTP
+  String? _sentOtp;
+
+  // Sign up with email and password after OTP verification
+  Future<void> signUpWithEmailAndOtp(BuildContext context, String email, String password, String enteredOtp) async {
+    if (verifyOtp(enteredOtp)) {
+      try {
+        UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+        if (userCredential.user != null) {
+          // Navigate to HomeScreen if sign-up is successful
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => OTPScreenApp()),
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Sign-up successful!')),
+          );
+        }
+      } catch (e) {
+        print('Sign-up Error: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Sign-up failed')),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('OTP does not match')),
+      );
+    }
+  }
+  // Send OTP via email using the mailer package
+  Future<bool> sendOtp(String email) async {
+    try {
+      // Gmail SMTP server configuration
+      String username = 'gajbhiyeprajwal466@gmail.com';
+      String password = 'fhhr avhb piln qzwb'; // Your app password here
+
+      final smtpServer = gmail(username, password);
+
+      // Generate a random 6-digit OTP
+      String otp = _generateOtp();
+
+      // Store the generated OTP
+      _sentOtp = otp;
+
+      // Compose the email
+      final message = Message()
+        ..from = Address(username, 'Prajwal OTP Service')
+        ..recipients.add(email) // Recipient email
+        ..subject = 'Your OTP Code'
+        ..text = 'Your OTP code is: $otp'; // Email body
+
+      // Send the email
+      final sendReport = await send(message, smtpServer);
+
+      if (sendReport != null) {
+        print('OTP sent: $otp');
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      print('Error sending OTP: $e');
+      return false;
+    }
+  }
+
+  // Generate a 6-digit OTP
+  String _generateOtp() {
+    var random = Random();
+    return (100000 + random.nextInt(900000)).toString();
+  }
+
+  // Verify if the entered OTP matches the sent one
+  bool verifyOtp(String enteredOtp) {
+    if (_sentOtp == enteredOtp) {
+      print('OTP verification successful');
+      return true;
+    } else {
+      print('OTP verification failed');
+      return false;
+    }
+  }
+
+  // Login with email and password
+  Future<User?> loginWithEmail(String email, String password) async {
+    try {
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return userCredential.user;
+    } catch (e) {
+      print('Login Error: $e');
+      return null;
+    }
+  }
+
+
+  Future<User?> signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return null;
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential result = await _auth.signInWithCredential(credential);
+      User? user = result.user;
+
+      if (user != null) {
+        await _checkAndCreateUserInFirestore(user);
+      }
+      return user;
+    } catch (e) {
+      print("Error in signInWithGoogle: $e");
+      return null;
+    }
+  }
+
+  Future<void> _checkAndCreateUserInFirestore(User user) async {
+    DocumentSnapshot doc = await _firestore.collection('users').doc(user.uid).get();
+    if (!doc.exists) {
+      await _firestore.collection('users').doc(user.uid).set({
+        'email': user.email,
+        'username': user.displayName ?? '',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+  }
+
+
+  // Sign out
+  Future<void> signOut() async {
+    try {
+      return await _auth.signOut();
+    } catch (e) {
+      print('Sign out Error: $e');
+    }
+  }
+
+  // Get current user
+  User? getCurrentUser() {
+    return _auth.currentUser;
+  }
+}
